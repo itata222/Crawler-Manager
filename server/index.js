@@ -10,5 +10,5 @@ app.use(cors());
 app.use(express.json())
 app.use(managerRouter)
 app.listen(port, () => {
-    console.log('server runs, port:', port)
+    console.log('manager runs, port:', port)
 })

@@ -1,8 +1,19 @@
+const Queue=require('./queue')
 class Node {
   constructor(value) {
       this.value = value;
-      this.right = null;
-      this.left = null;
+      this.depth=null;
+      this.childrens=[];
+  }
+
+  setDepth(depth){
+      this.depth=depth;
+      return this;
+  }
+
+  setChildren(value){
+    this.childrens=this.childrens.concat(new Node(value))
+    return this;
   }
 }
 
@@ -21,22 +32,23 @@ class Tree {
 
       let currentNode = this.root;
       while (currentNode != null) {
-          if (currentNode.value === value) return this;
-          if (currentNode.value > value) {
-              if (currentNode.left == null) {
-                  currentNode.left = newNode;
-                  return this;
-              } else {
-                  currentNode = currentNode.left;
-              }
-          } else {
-              if (currentNode.right == null) {
-                  currentNode.right = newNode;
-                  return this;
-              } else {
-                  currentNode = currentNode.right;
-              }
-          }
+
+        //   if (currentNode.value === value) return this;
+        //   if (currentNode.value > value) {
+        //       if (currentNode.left == null) {
+        //           currentNode.left = newNode;
+        //           return this;
+        //       } else {
+        //           currentNode = currentNode.left;
+        //       }
+        //   } else {
+        //       if (currentNode.right == null) {
+        //           currentNode.right = newNode;
+        //           return this;
+        //       } else {
+        //           currentNode = currentNode.right;
+        //       }
+        //   }
       }
   }
 

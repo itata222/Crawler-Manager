@@ -8,14 +8,16 @@ const sqs = new AWS.SQS({
 const sendMessageToQueue = async ({url,rootUrl,QueueUrl}) => {
     let MessageBody = `${rootUrl}$$$${url}`;
     try {
-        const {MessageId} = await sqs.sendMessage({
-            QueueUrl,
-            MessageBody
-        }).promise();
-
-        return MessageId;
+        if(QueueUrl){
+            const {MessageId} = await sqs.sendMessage({
+                QueueUrl,
+                MessageBody
+            }).promise();
+    
+            return MessageId;
+        }
     } catch (err) {
-        console.log('111',err);
+        console.log('113',err);
     }
 };
 
