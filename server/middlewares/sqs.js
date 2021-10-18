@@ -7,13 +7,15 @@ const sqs = new AWS.SQS({
 
 
 const deleteQueue = async (req,res,next) => {
-    const QueueUrl=req.query.QueueUrl
+    const QueueUrl=req.query.QueueUrl;
+    let isQueueDeleted;
     try {
         if(QueueUrl)
-            await sqs.deleteQueue({ QueueUrl }).promise();
-
+            isQueueDeleted= await sqs.deleteQueue({ QueueUrl }).promise();
+        console.log('isQueueDeleted',isQueueDeleted)
         next();
     } catch (err) {
+        next(err)
         console.log('112',err);
     }
 };

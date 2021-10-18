@@ -1,36 +1,23 @@
-const { sendWorkPropertiesToRedis, setWorkAsDoneInRedis, setCurrentLevelDataInRedis, getAllUrlsInRedis } = require("../utils/redis");
-const { pollMessagesFromQueue, sendMessageToQueue } = require("../utils/sqs");
+const { sendWorkPropertiesToRedis, setCurrentLevelDataInRedis, getAllUrlsInRedis } = require("../utils/redis");
+const { sendRootUrlToQueue } = require("../utils/sqs");
 const Axios=require('axios');
 const Tree = require("../utils/tree");
 
 let tree;
 let maxPages;
 let maxiDepth;
-
-// const getUrl = async (req, res) => {
-//     try {
-//         let done=false;
-//         const url=req.body.url;
-//         tree.insert(url);
-//         const treeAsArray= tree.bfsTraveres();
-//         if(treeAsArray.length>=maxPages){
-//             const updatedWorkDictioneryInRedis= await setWorkAsDoneInRedis();
-//             console.log('done',updatedWorkDictioneryInRedis)
-//             done=true;
-//         }
-//         res.send({done})
-//     } catch (error) {
-//        console.log(error)
-//     }
-// }
+let missionRoot;
 
 const getTree = async (req, res) => {
     try {
-        const allUrls = await getAllUrlsInRedis();
-        console.log('all',allUrls)
-        const treeAsArray= tree.bfsTraveres();
-        res.send(treeAsArray)
+        const allUrls = await getAllUrlsInRedis({missionRoot});
+        console.log('all',allUrls.length)
+
+        // ! here we should build the tree
+
+        res.send(allUrls)
     } catch (error) {
+        console.log('12333',error)
         res.status(500).send({
             status:500,
             message:'Manager failed to send tree'
@@ -50,9 +37,10 @@ const startManager = async (req, res) => {
         tree = new Tree();
         maxPages=maxTotalPages;
         maxiDepth=maxDepth;
-        await sendMessageToQueue({url:rootUrl,rootUrl,QueueUrl});
+        missionRoot=rootUrl;
+        await sendRootUrlToQueue({url:rootUrl,rootUrl,QueueUrl});
         await sendWorkPropertiesToRedis({rootUrl,maxDepth,maxTotalPages,finished})
-        await setCurrentLevelDataInRedis();
+        await initCurrentLevelDataInRedis();
         await Axios.post(url + "/crawl", {rootUrl,QueueName,maxiDepth,maxPages});
         // port++;
         // await Axios.post(url + "/crawl", {rootUrl,QueueName});

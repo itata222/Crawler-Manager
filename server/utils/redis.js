@@ -13,10 +13,12 @@ const sendWorkPropertiesToRedis=(async({rootUrl,maxDepth,maxTotalPages,finished}
     }
 })
 
-const setCurrentLevelDataInRedis=(async()=>{
+const initCurrentLevelDataInRedis=(async()=>{
     const levelData={
-        level:0,
-        childs:0
+        currentLevel:0,
+        urlsInCurrentLevelToScan:0,
+        urlsInCurrentLevelAlreadyScanned:0,
+        parentId:0
     }
     try {        
         await redisClient.hmsetAsync("levelData", levelData)
@@ -26,24 +28,16 @@ const setCurrentLevelDataInRedis=(async()=>{
     }
 })
 
-const getAllUrlsInRedis=(async()=>{
+const getAllUrlsInRedis=(async({missionRoot})=>{
+    console.log(missionRoot)
     try {
-        const response=await redisClient.keysAsync('http*')
-        return response;
+        const response=await redisClient.keysAsync(`*${missionRoot}*`)
+        let urlsAsObjs=[];
+        for(let key of response)
+            urlsAsObjs.push(await redisClient.getAsync(key))
+        return urlsAsObjs;
     } catch (e) {
         console.log('e',e)
-    }
-})
-
-const setWorkAsDoneInRedis=(async()=>{
-    try {        
-        await redisClient.hsetAsync('workDict','finished','true')
-
-        const workDict= await redisClient.hgetallAsync("workDict");
-
-        return workDict;
-    } catch (e) {
-        return e;
     }
 })
 
@@ -51,6 +45,5 @@ const setWorkAsDoneInRedis=(async()=>{
 module.exports={
     sendWorkPropertiesToRedis,
     getAllUrlsInRedis,
-    setWorkAsDoneInRedis,
-    setCurrentLevelDataInRedis
+    initCurrentLevelDataInRedis
 }
