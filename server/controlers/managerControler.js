@@ -1,4 +1,4 @@
-const { sendWorkPropertiesToRedis, setCurrentLevelDataInRedis, getAllUrlsInRedis } = require("../utils/redis");
+const { sendWorkPropertiesToRedis, initCurrentLevelDataInRedis, getAllUrlsInRedis } = require("../utils/redis");
 const { sendRootUrlToQueue } = require("../utils/sqs");
 const Axios=require('axios');
 const Tree = require("../utils/tree");

@@ -1,7 +1,7 @@
 const redisClient = require('../db/redis');
 
 const sendWorkPropertiesToRedis=(async({rootUrl,maxDepth,maxTotalPages,finished})=>{
-    const workProperties={rootUrl,maxDepth,maxTotalPages,finished}
+    const workProperties={rootUrl,maxDepth,maxTotalPages,finished,totalUrls:0}
     try {        
         await redisClient.hmsetAsync("workDict", workProperties)
 
@@ -16,9 +16,8 @@ const sendWorkPropertiesToRedis=(async({rootUrl,maxDepth,maxTotalPages,finished}
 const initCurrentLevelDataInRedis=(async()=>{
     const levelData={
         currentLevel:0,
-        urlsInCurrentLevelToScan:0,
+        urlsInCurrentLevelToScan:1,
         urlsInCurrentLevelAlreadyScanned:0,
-        parentId:0
     }
     try {        
         await redisClient.hmsetAsync("levelData", levelData)
