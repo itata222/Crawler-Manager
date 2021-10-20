@@ -33,11 +33,13 @@ const getAllUrlsInRedis = async ({ workID, maxPages }) => {
   try {
     const response = await redisClient.keysAsync(`*`);
     let urlsAsObjs = [];
-    for (let i = 0; i < Math.min(parseInt(maxPages), response.length); i++) {
-      const currentUrlInRedis = JSON.parse(response[i]);
-      console.log(currentUrlInRedis);
-      if (response[i].includes("http") && currentUrlInRedis.workID === workID) {
-        urlsAsObjs.push(await redisClient.getAsync(response[i]));
+    for (let i = 0, j = 0; i < response.length; i++) {
+      const responseValueType = await redisClient.typeAsync(response[i]);
+      if (responseValueType === "string" && j < parseInt(maxPages)) {
+        j++;
+        const responseValue = await redisClient.getAsync(response[i]);
+        const currentUrlInRedis = JSON.parse(responseValue);
+        if (parseInt(currentUrlInRedis.workID) === workID) urlsAsObjs.push(responseValue);
       }
     }
     return urlsAsObjs;
