@@ -29,12 +29,11 @@ const getTree = async (req, res) => {
 const startManager = async (req, res) => {
   const { rootUrl, maxDepth, maxTotalPages } = req.body;
   const QueueUrl = req.QueueUrl;
-  const QueueName = req.QueueName;
   const finished = false;
   let port = 8000;
   const url = `http://localhost:${port}`;
   try {
-    res.send({ QueueUrl });
+    res.send({ QueueUrl, workID });
     tree = new Tree();
     maxPages = maxTotalPages;
     maxiDepth = maxDepth;
@@ -42,10 +41,8 @@ const startManager = async (req, res) => {
     workID++;
     await sendRootUrlToQueue({ url: rootUrl, rootUrl, QueueUrl, workID });
     await sendWorkPropertiesToRedis({ rootUrl, maxDepth, maxTotalPages, finished, workID });
-    await initCurrentLevelDataInRedis();
-    await Axios.post(url + "/crawl", { rootUrl, QueueName, maxiDepth, maxPages, workID });
-    // port++;
-    // await Axios.post(url + "/crawl", {rootUrl,QueueName});
+    await initCurrentLevelDataInRedis(workID);
+    await Axios.post(url + `/crawl?workID=${workID}`);
     // port++;
   } catch (error) {
     console.log("err1", error);
