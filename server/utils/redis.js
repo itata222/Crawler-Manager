@@ -78,7 +78,7 @@ const checkIsWorkDone = async (QueueUrl, workID, maxTotalPages, maxDepth) => {
     );
     if (
       parseInt(currentLevelData.totalUrls) >= parseInt(maxTotalPages) ||
-      (parseInt(maxDepth) >= parseInt(currentLevelData.currentLevel) &&
+      (parseInt(currentLevelData.currentLevel) >= parseInt(maxDepth) &&
         parseInt(currentLevelData.urlsInCurrentLevelAlreadyScanned) + 1 + parseInt(currentLevelData.currentLevelDeathEnds) >=
           parseInt(currentLevelData.urlsInCurrentLevelToScan))
     ) {
