@@ -5,19 +5,6 @@ const sqs = new AWS.SQS({
   region: process.env.AWS_REGION,
 });
 
-const deleteQueue = async (req, res, next) => {
-  const QueueUrl = req.query.QueueUrl;
-  let isQueueDeleted;
-  try {
-    if (QueueUrl) isQueueDeleted = await sqs.deleteQueue({ QueueUrl }).promise();
-    console.log("isQueueDeleted", isQueueDeleted);
-    next();
-  } catch (err) {
-    next(err);
-    console.log("112", err);
-  }
-};
-
 const createQueue = async (req, res, next) => {
   try {
     const { QueueUrl } = await sqs.createQueue({ QueueName: "Crawler-Queue1" }).promise();
@@ -30,6 +17,5 @@ const createQueue = async (req, res, next) => {
 };
 
 module.exports = {
-  deleteQueue,
   createQueue,
 };

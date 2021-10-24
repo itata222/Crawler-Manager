@@ -1,10 +1,10 @@
 const redisClient = require("../db/redis");
+const { deleteQueue } = require("./sqs");
 
 const sendWorkPropertiesToRedis = async ({ rootUrl, maxDepth, maxTotalPages, finished, workID }) => {
   const workProperties = { rootUrl, maxDepth, maxTotalPages, finished, workID };
   try {
     await redisClient.hmsetAsync(`workDict-${workID}`, workProperties);
-    await redisClient.expireAsync(`workDict-${workID}`, 300);
 
     const workDict = await redisClient.hgetallAsync(`workDict-${workID}`);
 
@@ -25,7 +25,6 @@ const initCurrentLevelDataInRedis = async (workID) => {
   };
   try {
     await redisClient.hmsetAsync(`levelData-${workID}`, levelData);
-    await redisClient.expireAsync(`levelData-${workID}`, 300);
   } catch (e) {
     return e;
   }
@@ -42,17 +41,53 @@ const getAllUrlsInRedis = async ({ workID, maxPages }) => {
         j++;
         const responseValue = await redisClient.getAsync(response[i]);
         const currentUrlInRedis = JSON.parse(responseValue);
-        console.log(currentUrlInRedis.myAddress, currentUrlInRedis.workID);
         if (currentUrlInRedis.workID === workID && aaa < parseInt(maxPages)) {
           aaa++;
           urlsAsObjs.push(responseValue);
         }
       }
     }
-    console.log("jaaa", aaa, workID);
     return urlsAsObjs;
   } catch (e) {
     console.log("e", e);
+  }
+};
+
+const getCurrentLevelData = async (workID) => {
+  try {
+    const response = await redisClient.hgetallAsync(`levelData-${workID}`);
+    return response;
+  } catch (e) {
+    console.log(e);
+    return e;
+  }
+};
+
+const checkIsWorkDone = async (QueueUrl, workID, maxTotalPages, maxDepth) => {
+  try {
+    console.log("redis-utils-workID", workID);
+    const currentLevelData = await getCurrentLevelData(workID);
+
+    console.log(
+      parseInt(currentLevelData.totalUrls),
+      parseInt(maxTotalPages),
+      parseInt(maxDepth),
+      parseInt(currentLevelData.currentLevel),
+      parseInt(currentLevelData.urlsInCurrentLevelAlreadyScanned) + 1 + parseInt(currentLevelData.currentLevelDeathEnds),
+      parseInt(currentLevelData.urlsInCurrentLevelToScan)
+    );
+    if (
+      parseInt(currentLevelData.totalUrls) >= parseInt(maxTotalPages) ||
+      (parseInt(maxDepth) >= parseInt(currentLevelData.currentLevel) &&
+        parseInt(currentLevelData.urlsInCurrentLevelAlreadyScanned) + 1 + parseInt(currentLevelData.currentLevelDeathEnds) >=
+          parseInt(currentLevelData.urlsInCurrentLevelToScan))
+    ) {
+      console.log("doneeeeeeeeeeeeeeeeeeeeeee");
+      await deleteQueue({ QueueUrl });
+      return true;
+    } else return false;
+  } catch (error) {
+    console.log("eeeeeer123", error);
   }
 };
 
@@ -60,4 +95,5 @@ module.exports = {
   sendWorkPropertiesToRedis,
   getAllUrlsInRedis,
   initCurrentLevelDataInRedis,
+  checkIsWorkDone,
 };

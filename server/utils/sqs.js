@@ -23,6 +23,18 @@ const sendRootUrlToQueue = async ({ url, QueueUrl, workID }) => {
   }
 };
 
+const deleteQueue = async ({ QueueUrl }) => {
+  let isQueueDeleted;
+  try {
+    if (QueueUrl) isQueueDeleted = await sqs.deleteQueue({ QueueUrl }).promise();
+    console.log("isQueueDeleted", isQueueDeleted);
+  } catch (err) {
+    next(err);
+    console.log("112", err);
+  }
+};
+
 module.exports = {
   sendRootUrlToQueue,
+  deleteQueue,
 };

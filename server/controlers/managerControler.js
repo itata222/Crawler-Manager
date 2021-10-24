@@ -1,22 +1,19 @@
-const { sendWorkPropertiesToRedis, initCurrentLevelDataInRedis, getAllUrlsInRedis } = require("../utils/redis");
+const { sendWorkPropertiesToRedis, initCurrentLevelDataInRedis, getAllUrlsInRedis, checkIsWorkDone } = require("../utils/redis");
 const { sendRootUrlToQueue } = require("../utils/sqs");
 const Axios = require("axios");
-const Tree = require("../utils/tree");
 
-let tree;
 let maxPages;
 let maxiDepth;
 let missionRoot;
 let workID = 0;
 
 const getTree = async (req, res) => {
+  const finished = req.finished;
+  const updatedWorkID = parseInt(req.query.workID);
   try {
-    const allUrls = await getAllUrlsInRedis({ workID, maxPages });
-    console.log("all", allUrls.length);
-
-    // ! here we should build the tree
-
-    res.send(allUrls);
+    const allUrls = await getAllUrlsInRedis({ workID: updatedWorkID, maxPages });
+    console.log("all", allUrls.length, finished, updatedWorkID);
+    res.send({ tree: allUrls, finished });
   } catch (error) {
     console.log("12333", error);
     res.status(500).send({
@@ -30,27 +27,24 @@ const startManager = async (req, res) => {
   const { rootUrl, maxDepth, maxTotalPages } = req.body;
   const QueueUrl = req.QueueUrl;
   const finished = false;
-  let port = 8000;
-  const url = `http://localhost:${port}`;
+
   try {
     res.send({ QueueUrl, workID });
-    tree = new Tree();
     maxPages = maxTotalPages;
     maxiDepth = maxDepth;
     missionRoot = rootUrl;
-    workID++;
     await sendRootUrlToQueue({ url: rootUrl, rootUrl, QueueUrl, workID });
     await sendWorkPropertiesToRedis({ rootUrl, maxDepth, maxTotalPages, finished, workID });
     await initCurrentLevelDataInRedis(workID);
-    await Axios.post(url + `/crawl?workID=${workID}`);
-    // port++;
+    await Axios.post(`http://localhost:8000/crawl?workID=${workID}&rootUrl=${rootUrl}`);
+    // await Axios.post(`http://localhost:8080/crawl?workID=${workID}`);
+    workID++;
   } catch (error) {
-    console.log("err1", error);
+    console.log("err1", error.message);
   }
 };
 
 module.exports = {
   getTree,
   startManager,
-  // getUrl
 };
