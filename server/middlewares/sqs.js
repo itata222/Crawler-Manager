@@ -12,7 +12,7 @@ const createQueue = async (req, res, next) => {
     req.QueueName = "Crawler-Queue1";
     next();
   } catch (err) {
-    console.log("111", err.message || err.Message);
+    console.log(err.message || err.Message);
   }
 };
 

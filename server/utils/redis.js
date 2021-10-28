@@ -14,14 +14,16 @@ const sendWorkPropertiesToRedis = async ({ rootUrl, maxDepth, maxTotalPages, fin
   }
 };
 
-const initCurrentLevelDataInRedis = async (workID) => {
+const initCurrentLevelDataInRedis = async (workID, maxPages) => {
   const levelData = {
     currentLevel: 0,
     urlsInCurrentLevelToScan: 1,
     urlsInNextLevelToScan: 0,
+    remainingSlots: parseInt(maxPages),
     urlsInCurrentLevelAlreadyScanned: 0,
     totalUrls: 0,
     currentLevelDeathEnds: 0,
+    firstPositionInNextLevel: 1,
   };
   try {
     await redisClient.hmsetAsync(`levelData-${workID}`, levelData);
@@ -30,23 +32,44 @@ const initCurrentLevelDataInRedis = async (workID) => {
   }
 };
 
-const getAllUrlsInRedis = async ({ workID, maxPages }) => {
+const getLatestDataFromRedis = async ({ workID }) => {
+  try {
+    // const allWorkNodes = await getAllUrlsInRedis({ workID });
+    // console.log("allWorkNodes", allWorkNodes.length);
+    const treeArr = [];
+    const tree = await redisClient.lrangeAsync(`tree:${workID}`, 0, -1);
+    tree.forEach((element) => {
+      const el = JSON.parse(element);
+      treeArr.push(...el);
+    });
+    return treeArr;
+  } catch (e) {
+    console.log("e", e);
+  }
+};
+const pushRootUrlNodeToTreeListInRedis = async (workID, rootNode) => {
+  const rootNodeStr = JSON.stringify([rootNode]);
+  await redisClient.lpushAsync(`tree:${workID}`, rootNodeStr);
+};
+
+const getAllUrlsInRedis = async ({ workID }) => {
   try {
     const response = await redisClient.keysAsync(`*`);
     let urlsAsObjs = [];
-    let aaa = 0;
-    for (let i = 0, j = 0; i < response.length; i++) {
+    for (let i = 0, j = 0, a = 0; i < response.length; i++) {
       const responseValueType = await redisClient.typeAsync(response[i]);
       if (responseValueType === "string") {
         j++;
         const responseValue = await redisClient.getAsync(response[i]);
         const currentUrlInRedis = JSON.parse(responseValue);
-        if (currentUrlInRedis.workID === workID && aaa < parseInt(maxPages)) {
-          aaa++;
-          urlsAsObjs.push(responseValue);
+        // console.log("getall", workID, currentUrlInRedis.workID);
+        if (currentUrlInRedis.workID === workID) {
+          a++;
+          urlsAsObjs.push(currentUrlInRedis);
         }
       }
     }
+
     return urlsAsObjs;
   } catch (e) {
     console.log("e", e);
@@ -65,24 +88,15 @@ const getCurrentLevelData = async (workID) => {
 
 const checkIsWorkDone = async (QueueUrl, workID, maxTotalPages, maxDepth) => {
   try {
-    console.log("redis-utils-workID", workID);
     const currentLevelData = await getCurrentLevelData(workID);
-
-    console.log(
-      parseInt(currentLevelData.totalUrls),
-      parseInt(maxTotalPages),
-      parseInt(maxDepth),
-      parseInt(currentLevelData.currentLevel),
-      parseInt(currentLevelData.urlsInCurrentLevelAlreadyScanned) + 1 + parseInt(currentLevelData.currentLevelDeathEnds),
-      parseInt(currentLevelData.urlsInCurrentLevelToScan)
-    );
     if (
       parseInt(currentLevelData.totalUrls) >= parseInt(maxTotalPages) ||
+      parseInt(currentLevelData.remainingSlots) - parseInt(currentLevelData.currentLevelDeathEnds) <= 0 ||
       (parseInt(currentLevelData.currentLevel) >= parseInt(maxDepth) &&
-        parseInt(currentLevelData.urlsInCurrentLevelAlreadyScanned) + 1 + parseInt(currentLevelData.currentLevelDeathEnds) >=
+        parseInt(currentLevelData.urlsInCurrentLevelAlreadyScanned) + parseInt(currentLevelData.currentLevelDeathEnds) >=
           parseInt(currentLevelData.urlsInCurrentLevelToScan))
     ) {
-      console.log("doneeeeeeeeeeeeeeeeeeeeeee");
+      console.log("redis-utils-doneeeeeeeeeeeeeeeeeeeeeee");
       await deleteQueue({ QueueUrl });
       return true;
     } else return false;
@@ -93,7 +107,10 @@ const checkIsWorkDone = async (QueueUrl, workID, maxTotalPages, maxDepth) => {
 
 module.exports = {
   sendWorkPropertiesToRedis,
+  pushRootUrlNodeToTreeListInRedis,
   getAllUrlsInRedis,
+  getLatestDataFromRedis,
   initCurrentLevelDataInRedis,
   checkIsWorkDone,
+  getCurrentLevelData,
 };

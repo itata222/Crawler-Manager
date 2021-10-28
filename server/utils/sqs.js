@@ -6,7 +6,7 @@ const sqs = new AWS.SQS({
 });
 
 const sendRootUrlToQueue = async ({ url, QueueUrl, workID }) => {
-  let MessageBody = `${workID}$${url}$null`;
+  let MessageBody = `${workID}$${url}$null$0`;
   try {
     if (QueueUrl) {
       const { MessageId } = await sqs
