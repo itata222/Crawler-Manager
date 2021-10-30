@@ -42,8 +42,8 @@ const startManager = async (req, res) => {
     await pushRootUrlNodeToTreeListInRedis(workID, { myAddress: rootUrl, parentPosition: 0, depth: 0, parentAddress: "null" });
     await sendWorkPropertiesToRedis({ rootUrl, maxDepth, maxTotalPages, finished, workID });
     await initCurrentLevelDataInRedis(workID, maxPages);
-    await Axios.post(`http://localhost:8000/crawl?workID=${workID}&rootUrl=${rootUrl}&maxPages=${maxPages}`);
-    // await Axios.post(`http://localhost:8080/crawl?workID=${workID}&rootUrl=${rootUrl}&maxPages=${maxPages}`);
+    await Axios.post(`http://localhost:8000/crawl?workID=${workID}`);
+    await Axios.post(`http://localhost:8080/crawl?workID=${workID}`);
     workID++;
   } catch (error) {
     console.log("err1", error.message);

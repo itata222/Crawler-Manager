@@ -34,8 +34,6 @@ const initCurrentLevelDataInRedis = async (workID, maxPages) => {
 
 const getLatestDataFromRedis = async ({ workID }) => {
   try {
-    // const allWorkNodes = await getAllUrlsInRedis({ workID });
-    // console.log("allWorkNodes", allWorkNodes.length);
     const treeArr = [];
     const tree = await redisClient.lrangeAsync(`tree:${workID}`, 0, -1);
     tree.forEach((element) => {
@@ -89,6 +87,15 @@ const getCurrentLevelData = async (workID) => {
 const checkIsWorkDone = async (QueueUrl, workID, maxTotalPages, maxDepth) => {
   try {
     const currentLevelData = await getCurrentLevelData(workID);
+    // console.log(parseInt(currentLevelData.totalUrls), parseInt(maxTotalPages));
+    // console.log(parseInt(currentLevelData.remainingSlots), parseInt(currentLevelData.currentLevelDeathEnds));
+    // console.log(
+    //   parseInt(currentLevelData.currentLevel),
+    //   parseInt(maxDepth),
+    //   parseInt(currentLevelData.urlsInCurrentLevelAlreadyScanned),
+    //   parseInt(currentLevelData.currentLevelDeathEnds),
+    //   parseInt(currentLevelData.urlsInCurrentLevelToScan)
+    // );
     if (
       parseInt(currentLevelData.totalUrls) >= parseInt(maxTotalPages) ||
       parseInt(currentLevelData.remainingSlots) - parseInt(currentLevelData.currentLevelDeathEnds) <= 0 ||
