@@ -23,12 +23,21 @@ const initCurrentLevelDataInRedis = async (workID, maxPages) => {
     urlsInCurrentLevelAlreadyScanned: 0,
     totalUrls: 0,
     currentLevelDeathEnds: 0,
-    firstPositionInNextLevel: 1,
   };
   try {
     await redisClient.hmsetAsync(`levelData-${workID}`, levelData);
   } catch (e) {
     return e;
+  }
+};
+
+const getAndSetWorkID = async () => {
+  try {
+    const a = await redisClient.lpushAsync("workIDNumber", 1);
+    const workID = await redisClient.lrangeAsync("workIDNumber", 0, -1);
+    return workID.length;
+  } catch (error) {
+    console.log(error);
   }
 };
 
@@ -38,9 +47,25 @@ const getLatestDataFromRedis = async ({ workID }) => {
     const tree = await redisClient.lrangeAsync(`tree:${workID}`, 0, -1);
     tree.forEach((element) => {
       const el = JSON.parse(element);
-      treeArr.push(...el);
+      for (let item of el) {
+        if (item != null) treeArr.push(item);
+      }
     });
-    return treeArr;
+    const sortedTreeArr = treeArr.sort(function (a, b) {
+      if (typeof a.position !== "number") a.position = `${a.position}`;
+      if (typeof b.position !== "number") b.position = `${b.position}`;
+      const aPos = a.position.split("-");
+      const bPos = b.position.split("-");
+      for (let i = 0; i < aPos.length; i++) {
+        if (aPos.length < bPos.length) return -1;
+        if (aPos.length > bPos.length) return 1;
+        if (parseInt(aPos[i]) < parseInt(bPos[i])) return -1;
+        if (parseInt(aPos[i]) > parseInt(bPos[i])) return 1;
+        continue;
+      }
+      return 0;
+    });
+    return sortedTreeArr;
   } catch (e) {
     console.log("e", e);
   }
@@ -48,30 +73,6 @@ const getLatestDataFromRedis = async ({ workID }) => {
 const pushRootUrlNodeToTreeListInRedis = async (workID, rootNode) => {
   const rootNodeStr = JSON.stringify([rootNode]);
   await redisClient.lpushAsync(`tree:${workID}`, rootNodeStr);
-};
-
-const getAllUrlsInRedis = async ({ workID }) => {
-  try {
-    const response = await redisClient.keysAsync(`*`);
-    let urlsAsObjs = [];
-    for (let i = 0, j = 0, a = 0; i < response.length; i++) {
-      const responseValueType = await redisClient.typeAsync(response[i]);
-      if (responseValueType === "string") {
-        j++;
-        const responseValue = await redisClient.getAsync(response[i]);
-        const currentUrlInRedis = JSON.parse(responseValue);
-        // console.log("getall", workID, currentUrlInRedis.workID);
-        if (currentUrlInRedis.workID === workID) {
-          a++;
-          urlsAsObjs.push(currentUrlInRedis);
-        }
-      }
-    }
-
-    return urlsAsObjs;
-  } catch (e) {
-    console.log("e", e);
-  }
 };
 
 const getCurrentLevelData = async (workID) => {
@@ -83,6 +84,17 @@ const getCurrentLevelData = async (workID) => {
     return e;
   }
 };
+
+// const isUrlAlreadyInRedis = async (url) => {
+//   try {
+//     let isExist = false;
+//     const response = await redisClient.keysAsync("*");
+//     if (response.includes(url)) isExist = true;
+//     return isExist;
+//   } catch (e) {
+//     console.log("e", e);
+//   }
+// };
 
 const checkIsWorkDone = async (QueueUrl, workID, maxTotalPages, maxDepth) => {
   try {
@@ -115,9 +127,9 @@ const checkIsWorkDone = async (QueueUrl, workID, maxTotalPages, maxDepth) => {
 module.exports = {
   sendWorkPropertiesToRedis,
   pushRootUrlNodeToTreeListInRedis,
-  getAllUrlsInRedis,
   getLatestDataFromRedis,
   initCurrentLevelDataInRedis,
   checkIsWorkDone,
   getCurrentLevelData,
+  getAndSetWorkID,
 };

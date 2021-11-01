@@ -3,14 +3,10 @@ const {
   initCurrentLevelDataInRedis,
   getLatestDataFromRedis,
   pushRootUrlNodeToTreeListInRedis,
+  getAndSetWorkID,
 } = require("../utils/redis");
 const { sendRootUrlToQueue } = require("../utils/sqs");
 const Axios = require("axios");
-
-let maxPages;
-let maxiDepth;
-let missionRoot;
-let workID = 0;
 
 const getTree = async (req, res) => {
   const finished = req.finished;
@@ -34,17 +30,14 @@ const startManager = async (req, res) => {
   const finished = false;
 
   try {
+    const workID = await getAndSetWorkID();
     res.send({ QueueUrl, workID });
-    maxPages = maxTotalPages;
-    maxiDepth = maxDepth;
-    missionRoot = rootUrl;
     await sendRootUrlToQueue({ url: rootUrl, rootUrl, QueueUrl, workID });
     await pushRootUrlNodeToTreeListInRedis(workID, { myAddress: rootUrl, parentPosition: 0, depth: 0, parentAddress: "null" });
     await sendWorkPropertiesToRedis({ rootUrl, maxDepth, maxTotalPages, finished, workID });
-    await initCurrentLevelDataInRedis(workID, maxPages);
+    await initCurrentLevelDataInRedis(workID, maxTotalPages);
     await Axios.post(`http://localhost:8000/crawl?workID=${workID}`);
-    await Axios.post(`http://localhost:8080/crawl?workID=${workID}`);
-    workID++;
+    // await Axios.post(`http://localhost:8080/crawl?workID=${workID}`);
   } catch (error) {
     console.log("err1", error.message);
   }

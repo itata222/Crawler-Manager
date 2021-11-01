@@ -29,7 +29,6 @@ const deleteQueue = async ({ QueueUrl }) => {
     if (QueueUrl) isQueueDeleted = await sqs.deleteQueue({ QueueUrl }).promise();
     console.log("isQueueDeleted", isQueueDeleted);
   } catch (err) {
-    next(err);
     console.log("112", err);
   }
 };
